@@ -32,27 +32,21 @@ BITMAPFILEHEADER;
 // define the structure of the bmp file INFO
 
 typedef struct {
-    LONG header_size;
-    LONG width;
-    LONG height;
+    DWORD header_size;
+    DWORD width;
+    DWORD height;
     WORD color_planes;
     WORD bit_depth;
-    LONG compression;
-    LONG image_size;
-    LONG horizontal_resolution;
-    LONG vertical_resolution;
-    LONG colors;
-    LONG important_colors;
+    DWORD compression;
+    DWORD image_size;
+    DWORD horizontal_resolution;
+    DWORD vertical_resolution;
+    DWORD colors;
+    DWORD important_colors;
 }__attribute__((__packed__))
 BITMAPINFOHEADER;
 
-// define the structure of the pixel in an image so that it can be used in the encoder and decoder
-typedef struct
-{
-    BYTE red;
-    BYTE green;
-    BYTE blue;
-}PIXEL;
+
 
 
 
