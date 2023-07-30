@@ -215,6 +215,17 @@ int encode(char inputFileName[], char outputFileName[])
     for ( int row =0 ; row < height ; row++ ){
 
         for ( int col = 0 ; col<width ; col++ ){
+            // if this is not our first pixel then get the previous pixel
+            if ( ( col != 0 ) && ( row != 0 ) ){
+                if (col!=0){
+                    // if this is not the first pixel in the row then get the previous pixel from the same row
+                    previous_pixel= image[row][col-1];
+                }
+                else{
+                    // however if this is the first pixel in the row then get the last pixel from the previous row
+                    previous_pixel = image[row-1][width-1];
+                }
+            }
             // get the pixel
             current_pixel  = image[row][col];
             // difference from the previous pixel;
