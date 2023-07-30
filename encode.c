@@ -118,11 +118,16 @@ int encode(char inputFileName[], char outputFileName[])
     {
         return valid;
     }
+    printf("Input file is valid and ready to be encoded!\n");
+
     // get pixel data to
 
     // 1. get the width and height of the image
     int width = info_header.width;
     int height = info_header.height;
+
+    printf("image width : %d\n", width);
+    printf("image height  : %d\n", height);
 
     // 2. allocate memory
 
@@ -152,6 +157,9 @@ int encode(char inputFileName[], char outputFileName[])
     {
         fread(image[i], sizeof(PIXEL), width, inputFile);
     }
+
+    printf("wrote the pixel data to the memory successfully!\n");
+    printf("encoding...\n");
 
     // -----------------------------------------------------------------------------------------------
     // Start Processing the pixels and encoding them and writing them to the output file
@@ -328,17 +336,9 @@ int encode(char inputFileName[], char outputFileName[])
                 fwrite(&current_pixel,sizeof(PIXEL),1,outputFile);
             }
         }
-
-
-    // }
-    // // output file
-    // FILE * outputFile = fopen(outputFileName, "w");
-    // fwrite(&file_header, sizeof(BITMAPFILEHEADER), 1, outputFile);
-    // fwrite(&info_header, sizeof(BITMAPINFOHEADER), 1, outputFile);
-    // for (int i =0; i < height; i++){
-    //     fwrite(image[i], sizeof(PIXEL), width, outputFile);
-    // }
     }
+    printf("done encoding...\n");
+    printf("output written to %s\n",outputFileName);
     free(image);
     fclose(inputFile);
     fclose(outputFile);
