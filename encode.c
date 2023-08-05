@@ -4,6 +4,21 @@
 #include "bmp.h"
 #include "qoi.h"
 
+
+
+// ---------------------------
+// ---------------------------
+// ------------NOTE-----------
+// i have assumed that the system running this code is a little endian system
+// since this is the most common in INTEL and AMD also APPLE SILICON is this 
+// way and also because i am too lazy to implement that as well so yeah
+// ---------------------------
+// ---------------------------
+// ---------------------------
+
+
+
+
 // define the structure of the pixel in an image so that it can be used in the encoder and decoder
 typedef struct
 {
@@ -170,8 +185,8 @@ int encode(char inputFileName[], char outputFileName[])
     // ------------------------------------------------
     FILE *outputFile = fopen(outputFileName, "w");
     QOI_HEADER qoi_header;
-    // if is in reverse assuming little endian
-    qoi_header.magic = 0x66696f71;
+    
+    qoi_header.magic = 0x66696f71;   // it is in reverse assuming little endian
     qoi_header.width = width;
     qoi_header.height = height;
     qoi_header.channels = 3;
@@ -218,24 +233,40 @@ int encode(char inputFileName[], char outputFileName[])
     // reserved for other stuff
     int run =0;
 
-
+int x = 0;
 
     for ( int row =0 ; row < height ; row++ ){
 
         for ( int col = 0 ; col<width ; col++ ){
             // if this is not our first pixel then get the previous pixel
-            if ( ( col != 0 ) && ( row != 0 ) ){
-                if (col!=0){
-                    // if this is not the first pixel in the row then get the previous pixel from the same row
-                    previous_pixel= image[row][col-1];
-                }
-                else{
-                    // however if this is the first pixel in the row then get the last pixel from the previous row
-                    previous_pixel = image[row-1][width-1];
-                }
-            }
+            // if ( ( col != 0 ) && ( row != 0 ) ){
+            //     if (col!=0){
+            //         // if this is not the first pixel in the row then get the previous pixel from the same row
+            //         previous_pixel= image[row][col-1];
+            //     }
+            //     else{
+            //         // however if this is the first pixel in the row then get the last pixel from the previous row
+            //         previous_pixel = image[row-1][width-1];
+            //     }
+            // }
             // get the pixel
             current_pixel  = image[row][col];
+            // if (x < 50){
+            //     printf("row : %d col : %d\n\n",row,col);
+            //     printf("current pixel red: %d\n", current_pixel.red);
+            //     printf("current pixel green: %d\n", current_pixel.green);
+            //     printf("current pixel blue: %d\n", current_pixel.blue);
+            //     printf("\n\n");
+            //     printf("previous pixel red: %d\n", previous_pixel.red);
+            //     printf("previous pixel green: %d\n", previous_pixel.green);
+            //     printf("previous pixel blue: %d\n\n\n", previous_pixel.blue);
+            //     x++;
+            // }
+            // else{
+            //     return 0;
+            // }
+
+
             // difference from the previous pixel;
             int pixel_hash=hash_pixel(current_pixel);
 
@@ -257,8 +288,12 @@ int encode(char inputFileName[], char outputFileName[])
             && current_pixel.blue == previous_pixel.blue
             && run < 64
             ){
+
+
+                // printf("run baby \n");
                 // if the pixel is the same as the previous pixel then we can skip it
-                run++;                    
+                run++;  
+                previous_pixel = current_pixel;                  
             }
             else if ( run > 0 ) 
             {
@@ -275,6 +310,9 @@ int encode(char inputFileName[], char outputFileName[])
 
                 run_byte = run_bit_flag ^ (run - 1);
                 fwrite(&run_byte,sizeof(BYTE),1,outputFile);
+                run = 0;
+                // printf("enough running\n");
+                previous_pixel= current_pixel;
             }
 
             // if there is no run sequence then check for small difference from the previous pixel
@@ -291,6 +329,8 @@ int encode(char inputFileName[], char outputFileName[])
                     BYTE difference_byte;
                     difference_byte = ( small_difference_bit_flag ) ^ ( ( diff_red + 2 ) << 4 ) ^ ( ( diff_green + 2 ) << 2 ) ^ ( ( diff_blue +2 ) );
                     fwrite(&difference_byte,sizeof(BYTE),1,outputFile);
+                    // printf("that's a small difference !!\n");
+                    previous_pixel = current_pixel;
                 }
 
 
@@ -307,6 +347,8 @@ int encode(char inputFileName[], char outputFileName[])
                 // encode this pixel as an index to that one 
                 BYTE index_byte = index_bit_flag ^ pixel_hash;
                 fwrite(&index_byte,sizeof(BYTE),1,outputFile);
+                // printf("o i have seen that before\n");
+                previous_pixel = current_pixel;
             }
 
             // check for bigger differences from the previous pix
@@ -325,16 +367,24 @@ int encode(char inputFileName[], char outputFileName[])
                 BYTE red_and_blue_difference_to_green = (( diff_red-diff_green + 8 ) << 4 ) ^ ( diff_blue-diff_green + 8 );
                 fwrite(&flag_and_green_difference_byte,sizeof(BYTE),1,outputFile);
                 fwrite(&red_and_blue_difference_to_green,sizeof(BYTE),1,outputFile);
+                // printf("bigger differences\n");
+                previous_pixel= current_pixel;
             }
             // if none of these conditions are met then we will store the pixel as a 4 byte pixel
             // this should seem a little bit intimidating and counterintuitive since we are storing
             // one extra byte but the hope here is that there will not be too many cases of these 
             else {
+                // printf("nah man this is new to me\n");
                 // first write the RGB flag which in this case is the extra flag
                 fwrite(&RGB_byte_flag,sizeof(BYTE),1,outputFile);
                 // then write the red, green and blue values
                 fwrite(&current_pixel,sizeof(PIXEL),1,outputFile);
+
+                // then add this pixel to the index list 
+                index_list[pixel_hash]=current_pixel;
+                previous_pixel = current_pixel;
             }
+            // printf("\n\n\n-------------\n\n\n");
         }
     }
     printf("done encoding...\n");
