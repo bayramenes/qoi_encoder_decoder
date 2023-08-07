@@ -205,25 +205,23 @@ int x =0 ;
     BYTE current_byte;
 
 
+int run_times=0;
+int first_timer=0;
+int small_difference_times=0;
+int big_difference_times=0;
+int index_times=0;
+
 
 
     while ( !feof(inputFile) ){
 
 
         fread(&current_byte, sizeof(BYTE), 1, inputFile);
-
-        // printf("byte : %x\n",current_byte);
-        // if (x == 10){
-        //     break;
-        // }
-
         
         // check if the flag is an RGB flag 
         // note that i have to check if the flag is an RGB flag because
         // the RGB flag is an 8-bit flag not a 2 bit one
         if ( current_byte == RGB_byte_flag){
-
-            // printf("it is indeed!!\n");
 
             // get the RGB pixel
             PIXEL pixel;
@@ -234,13 +232,10 @@ int x =0 ;
 
 
             fread(&red_channel_byte, sizeof(BYTE), 1, inputFile);
-            // printf("red : %x\n",red_channel_byte);
             fread(&green_channel_byte, sizeof(BYTE), 1, inputFile);
-            // printf("green : %x\n",green_channel_byte);
             fread(&blue_channel_byte, sizeof(BYTE), 1, inputFile);
-            // printf("blue : %x\n",blue_channel_byte);
-            
-            
+
+
             pixel.red = red_channel_byte;
             pixel.green = green_channel_byte;
             pixel.blue = blue_channel_byte;
@@ -248,25 +243,12 @@ int x =0 ;
             // write the pixel to the output file
             fwrite(&pixel, sizeof(PIXEL), 1, outputFile);
             // set this is the previous pixel
-            if (x < 50){
-                // printf("first timer\n\n");
-
-                // printf("current pixel red: %d\n", pixel.red);
-                // printf("current pixel green: %d\n", pixel.green);
-                // printf("current pixel blue: %d\n", pixel.blue);
-                // printf("\n\n");
-                // printf("previous pixel red: %d\n", previous_pixel.red);
-                // printf("previous pixel green: %d\n", previous_pixel.green);
-                // printf("previous pixel blue: %d\n\n\n", previous_pixel.blue);
-                // printf("\n\n\n-------------\n\n\n");
-                // x++;
-            }
-            else{
-                return 0;
-            }
             previous_pixel = pixel;
             // update the index list with the new pixel
             BYTE pixel_hash = hash_pixel(pixel);
+            // place this into the pixel index list
+            index_list[pixel_hash]=pixel;
+            printf("full\n");
         }
         else
         {
@@ -278,47 +260,26 @@ int x =0 ;
 
 
             if ( flag == run_bit_flag){
-                // get the run length
-                int run_length = data;
+
 
                 // keep writing the previous pixel to the output file
                 // the number of times the run length is
-                for (int i = 0 ; i < run_length ; i++){
+                for (int i = 0 ; i < ( data + 1 ) ; i++){
                     fwrite(&previous_pixel, sizeof(PIXEL), 1, outputFile);
+                    printf("run\n");
                 }
-                // printf("we are running baby\n");
-                // printf("\n\n\n-------------\n\n\n");
-                
+                // previous pixel stays the same
 
             }
             else if ( flag == index_bit_flag){
-                // get the index
-                int index = data;
+
                 // get the pixel from the index list
-                PIXEL pixel = index_list[index];
+                PIXEL pixel = index_list[data];
                 // write the pixel to the output file
                 fwrite(&pixel, sizeof(PIXEL), 1, outputFile);
-            if (x < 50){
-
-
-                // printf("i have seen that before \n\n");
-
-                // printf("current pixel red: %d\n", pixel.red);
-                // printf("current pixel green: %d\n", pixel.green);
-                // printf("current pixel blue: %d\n", pixel.blue);
-                // printf("\n\n");
-                // printf("previous pixel red: %d\n", previous_pixel.red);
-                // printf("previous pixel green: %d\n", previous_pixel.green);
-                // printf("previous pixel blue: %d\n\n\n", previous_pixel.blue);
-                // printf("\n\n\n-------------\n\n\n");
-                // x++;
-            }
-            else{
-                return 0;
-            }
-
                 // update the previous pixel
                 previous_pixel=pixel;
+                printf("index\n");
             }
             else if ( flag == small_difference_bit_flag){
 
@@ -338,25 +299,9 @@ int x =0 ;
                 pixel.blue = previous_pixel.blue + blue_difference;
                 // write the pixel to the output file
                 fwrite(&pixel, sizeof(PIXEL), 1, outputFile);
-
-            if (x < 50){
-                // printf("small difference baby\n\n");
-
-                // printf("current pixel red: %d\n", pixel.red);
-                // printf("current pixel green: %d\n", pixel.green);
-                // printf("current pixel blue: %d\n", pixel.blue);
-                // printf("\n\n");
-                // printf("previous pixel red: %d\n", previous_pixel.red);
-                // printf("previous pixel green: %d\n", previous_pixel.green);
-                // printf("previous pixel blue: %d\n\n\n", previous_pixel.blue);
-                // printf("\n\n\n-------------\n\n\n");
-                // x++;
-            }
-            else{
-                return 0;
-            }
                 // set this is the previous pixel
                 previous_pixel = pixel;
+                printf("small\n");
             }
             
             else if ( flag == bigger_difference_bit_flag){
@@ -387,27 +332,9 @@ int x =0 ;
                 pixel.blue = blue_to_green_difference + previous_pixel.blue + green_difference;
                 // write the pixel to the output file
                 fwrite(&pixel, sizeof(PIXEL), 1, outputFile);
-
-            if (x < 50){
-                // printf("bigger difference baby\n\n");
-
-                // printf("current pixel red: %d\n", pixel.red);
-                // printf("current pixel green: %d\n", pixel.green);
-                // printf("current pixel blue: %d\n", pixel.blue);
-                // printf("\n\n");
-                // printf("previous pixel red: %d\n", previous_pixel.red);
-                // printf("previous pixel green: %d\n", previous_pixel.green);
-                // printf("previous pixel blue: %d\n\n\n", previous_pixel.blue);
-                // printf("\n\n\n-------------\n\n\n");
-                // x++;
-            }
-            else{
-                return 0;
-            }
-
-
                 // update previous pixel
                 previous_pixel = pixel;
+                printf("big\n");
             }
             else{
                 printf("Error while decoding byte flag isn't recognized...");
@@ -415,8 +342,6 @@ int x =0 ;
             }
         }
     }
-
-
     fclose(inputFile);
     fclose(outputFile);
     return 0;

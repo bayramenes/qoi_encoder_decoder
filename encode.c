@@ -105,6 +105,14 @@ BITMAPINFOHEADER get_info_header(FILE * inputFile)
     return info_header;
 }
 
+
+
+BYTE is_same_pixel(PIXEL pixel1, PIXEL pixel2){
+    if (pixel1.red == pixel2.red && pixel1.green == pixel2.green && pixel1.blue == pixel2.blue){
+        return 1;
+    }
+    return 0;
+}
 // get the hash of a given pixel
 // useful for index and creating a hashmap of the pixels
 BYTE hash_pixel(PIXEL pixel)
@@ -233,38 +241,11 @@ int encode(char inputFileName[], char outputFileName[])
     // reserved for other stuff
     int run =0;
 
-int x = 0;
-
     for ( int row =0 ; row < height ; row++ ){
 
         for ( int col = 0 ; col<width ; col++ ){
-            // if this is not our first pixel then get the previous pixel
-            // if ( ( col != 0 ) && ( row != 0 ) ){
-            //     if (col!=0){
-            //         // if this is not the first pixel in the row then get the previous pixel from the same row
-            //         previous_pixel= image[row][col-1];
-            //     }
-            //     else{
-            //         // however if this is the first pixel in the row then get the last pixel from the previous row
-            //         previous_pixel = image[row-1][width-1];
-            //     }
-            // }
             // get the pixel
             current_pixel  = image[row][col];
-            // if (x < 50){
-            //     printf("row : %d col : %d\n\n",row,col);
-            //     printf("current pixel red: %d\n", current_pixel.red);
-            //     printf("current pixel green: %d\n", current_pixel.green);
-            //     printf("current pixel blue: %d\n", current_pixel.blue);
-            //     printf("\n\n");
-            //     printf("previous pixel red: %d\n", previous_pixel.red);
-            //     printf("previous pixel green: %d\n", previous_pixel.green);
-            //     printf("previous pixel blue: %d\n\n\n", previous_pixel.blue);
-            //     x++;
-            // }
-            // else{
-            //     return 0;
-            // }
 
 
             // difference from the previous pixel;
@@ -281,114 +262,126 @@ int x = 0;
             U_BYTE diff_green = (current_pixel.green - previous_pixel.green);
             U_BYTE diff_blue = (current_pixel.blue - previous_pixel.blue) ;
 
-            // check for a run sequence
-            if (
-                current_pixel.red == previous_pixel.red 
-            && current_pixel.green == previous_pixel.green 
-            && current_pixel.blue == previous_pixel.blue
-            && run < 64
-            ){
+            if ( is_same_pixel(previous_pixel,current_pixel)==1 ){
+                if (run < 62){
+                    run++;
+                    printf("run\n");
+                    previous_pixel = current_pixel;
+                    continue;
+                }
+                else {
 
+                    // the bit flag is 11
+                    // if the pixel is not the same as the previous pixel then we can write the run
+                    // and there was a run sqeunce before we want to save that run sequence
+                    BYTE run_byte;
+                    // in order to create this run byte we will have to xor 11000000 and the run value
+                    // e.g. 00101001 this will create the byte 11101001 which is the run byte
+                    // please note the run length will be stored with a bias of -1 
+                    // i.e. we will subtracting 1 from the run value when we store this is mostly to include run length of 63 
+                    // but 64 is still not going to work becuase the 11111110 bit tag should be reserved for the rgb and with 64 we will get 11111111
+                    // after subtracting 1 it become 11111110 and it will be stored this way which will confuse the decoder
 
-                // printf("run baby \n");
-                // if the pixel is the same as the previous pixel then we can skip it
-                run++;  
-                previous_pixel = current_pixel;                  
+                    run_byte = run_bit_flag ^ (run - 1);
+                    // write the run byte to the output file
+                    fwrite(&run_byte,sizeof(BYTE),1,outputFile);
+                    // reset the run value
+                    run = 1;
+                    previous_pixel = current_pixel;
+                    printf("run\n");
+                    continue;
+                }
+
             }
-            else if ( run > 0 ) 
-            {
-                // the bit flag is 11
-                // if the pixel is not the same as the previous pixel then we can write the run
-                // and there was a run sqeunce before we want to save that run sequence
-                BYTE run_byte;
-                // in order to create this run byte we will have to xor 11000000 and the run value
-                // e.g. 00101001 this will create the byte 11101001 which is the run byte
-                // please note the run length will be stored with a bias of -1 
-                // i.e. we will subtracting 1 from the run value when we store this is mostly to include run length of 63 
-                // but 64 is still not going to work becuase the 11111110 bit tag should be reserved for the rgb and with 64 we will get 11111111
-                // after subtracting 1 it become 11111110 and it will be stored this way which will confuse the decoder
+            else {
+                if (run > 0){
+                    
+                    // the bit flag is 11
+                    // if the pixel is not the same as the previous pixel then we can write the run
+                    // and there was a run sqeunce before we want to save that run sequence
+                    BYTE run_byte;
+                    // in order to create this run byte we will have to xor 11000000 and the run value
+                    // e.g. 00101001 this will create the byte 11101001 which is the run byte
+                    // please note the run length will be stored with a bias of -1 
+                    // i.e. we will subtracting 1 from the run value when we store this is mostly to include run length of 63 
+                    // but 64 is still not going to work becuase the 11111110 bit tag should be reserved for the rgb and with 64 we will get 11111111
+                    // after subtracting 1 it become 11111110 and it will be stored this way which will confuse the decoder
 
-                run_byte = run_bit_flag ^ (run - 1);
-                fwrite(&run_byte,sizeof(BYTE),1,outputFile);
-                run = 0;
-                // printf("enough running\n");
-                previous_pixel= current_pixel;
-            }
+                    run_byte = run_bit_flag ^ (run -1 );
+                    // write the run byte to the output file
+                    fwrite(&run_byte,sizeof(BYTE),1,outputFile);
+                    // reset the run value
+                    run = 0;
 
-            // if there is no run sequence then check for small difference from the previous pixel
+                }
 
-            else if (
-                    -2 <= diff_red && diff_red <= 1
+                if (
+                       -2 <= diff_red && diff_red <= 1 
                     && -2<=diff_green && diff_green <= 1
                     && -2<=diff_blue && diff_blue <= 1
-                ) {
-                    // bit flag is 01
-                    // when storing the data we have to make sure that we the difference values are
-                    // stored as unsigned integers with a bias of 2
-                    // e.g. 00 will indicate -2 ,01 will indicate -1, 10 will indicate 0, 11 will indicate 1
-                    BYTE difference_byte;
-                    difference_byte = ( small_difference_bit_flag ) ^ ( ( diff_red + 2 ) << 4 ) ^ ( ( diff_green + 2 ) << 2 ) ^ ( ( diff_blue +2 ) );
-                    fwrite(&difference_byte,sizeof(BYTE),1,outputFile);
-                    // printf("that's a small difference !!\n");
+                    )
+                    {
+                        // bit flag is 01
+                        // when storing the data we have to make sure that we the difference values are
+                        // stored as unsigned integers with a bias of 2
+                        // e.g. 00 will indicate -2 ,01 will indicate -1, 10 will indicate 0, 11 will indicate 1
+                        BYTE difference_byte;
+                        difference_byte = ( small_difference_bit_flag ) ^ ( ( diff_red + 2 ) << 4 ) ^ ( ( diff_green + 2 ) << 2 ) ^ ( ( diff_blue +2 ) );
+                        fwrite(&difference_byte,sizeof(BYTE),1,outputFile);
+                        previous_pixel = current_pixel;
+                        printf("small\n");
+                        continue;
+                    }
+                if (
+                    index_list[pixel_hash].red == current_pixel.red
+                    && index_list[pixel_hash].green == current_pixel.green
+                    && index_list[pixel_hash].blue == current_pixel.blue
+                )
+                {
+                    // the bit flag 00
+                    // if the pixel is the same as pixel in the index list then
+                    // encode this pixel as an index to that one 
+                    BYTE index_byte = index_bit_flag ^ pixel_hash;
+                    fwrite(&index_byte,sizeof(BYTE),1,outputFile);
                     previous_pixel = current_pixel;
+                    printf("index\n");
+                    continue;
                 }
 
 
-            // before checking for bigger differences where pixels will be stored in two bytes rather than
-            // one i will be checking for index variables because the index is stored in only one byte
-            // hence should be more efficient
-            else if (
-                index_list[pixel_hash].red == current_pixel.red
-                && index_list[pixel_hash].green == current_pixel.green
-                && index_list[pixel_hash].blue == current_pixel.blue
-            ){
-                // the bit flag 00
-                // if the pixel is the same as pixel in the index list then
-                // encode this pixel as an index to that one 
-                BYTE index_byte = index_bit_flag ^ pixel_hash;
-                fwrite(&index_byte,sizeof(BYTE),1,outputFile);
-                // printf("o i have seen that before\n");
-                previous_pixel = current_pixel;
-            }
-
-            // check for bigger differences from the previous pix
-            // if so we will be encoding as a two byte pixel rather than the original 3
-            else if (
-                // the bit flag 10
-                -32<=diff_green && diff_green <= 31
-                && -8<=(diff_red-diff_green) && (diff_red-diff_green) <= 7
-                && -8<=(diff_blue-diff_green) && (diff_blue-diff_green) <= 7
-            )
-            {
-                // differences will be stored with a bias of 32 for the green channel
-                // and of 8 for the red and blue channels
-                // i.e. add 32 for the green difference and add 8 for the red and blue difference
-                BYTE flag_and_green_difference_byte = bigger_difference_bit_flag ^ ( diff_green + 32 );
-                BYTE red_and_blue_difference_to_green = (( diff_red-diff_green + 8 ) << 4 ) ^ ( diff_blue-diff_green + 8 );
-                fwrite(&flag_and_green_difference_byte,sizeof(BYTE),1,outputFile);
-                fwrite(&red_and_blue_difference_to_green,sizeof(BYTE),1,outputFile);
-                // printf("bigger differences\n");
-                previous_pixel= current_pixel;
-            }
-            // if none of these conditions are met then we will store the pixel as a 4 byte pixel
-            // this should seem a little bit intimidating and counterintuitive since we are storing
-            // one extra byte but the hope here is that there will not be too many cases of these 
-            else {
-                // printf("nah man this is new to me\n");
+                if (
+                    -32<=diff_green && diff_green <= 31
+                    && -8<=(diff_red-diff_green) && (diff_red-diff_green) <= 7
+                    && -8<=(diff_blue-diff_green) && (diff_blue-diff_green) <= 7
+                )
+                {
+                    // the bit flag 10
+                    // differences will be stored with a bias of 32 for the green channel
+                    // and of 8 for the red and blue channels
+                    // i.e. add 32 for the green difference and add 8 for the red and blue difference
+                    BYTE flag_and_green_difference_byte = bigger_difference_bit_flag ^ ( diff_green + 32 );
+                    BYTE red_and_blue_difference_to_green = (( diff_red-diff_green + 8 ) << 4 ) ^ ( diff_blue-diff_green + 8 );
+                    fwrite(&flag_and_green_difference_byte,sizeof(BYTE),1,outputFile);
+                    fwrite(&red_and_blue_difference_to_green,sizeof(BYTE),1,outputFile);
+                    previous_pixel= current_pixel;
+                    printf("big\n");
+                    continue;
+                }
                 // first write the RGB flag which in this case is the extra flag
                 fwrite(&RGB_byte_flag,sizeof(BYTE),1,outputFile);
                 // then write the red, green and blue values
                 fwrite(&current_pixel,sizeof(PIXEL),1,outputFile);
-
                 // then add this pixel to the index list 
                 index_list[pixel_hash]=current_pixel;
                 previous_pixel = current_pixel;
+                printf("full\n");
+                continue;
             }
-            // printf("\n\n\n-------------\n\n\n");
         }
     }
     printf("done encoding...\n");
     printf("output written to %s\n",outputFileName);
+                
     free(image);
     fclose(inputFile);
     fclose(outputFile);
