@@ -143,6 +143,7 @@ int decode(char *inputFileName, char *outputFileName)
     printf("image width : %d\n", width);
     printf("image height  : %d\n", height);
     
+    
     // ------------------------------------------------
     // initialize an index list to save pixels at
     // ------------------------------------------------
@@ -200,19 +201,11 @@ int decode(char *inputFileName, char *outputFileName)
     // write info file header to the output file
     fwrite(&output_info_header, sizeof(BITMAPINFOHEADER), 1, outputFile);
 
-int x =0 ; 
     // now we decode the pixels
     BYTE current_byte;
 
 
-int run_times=0;
-int first_timer=0;
-int small_difference_times=0;
-int big_difference_times=0;
-int index_times=0;
-
-
-
+    printf("starting decode...\n");
     while ( !feof(inputFile) ){
 
 
@@ -248,7 +241,6 @@ int index_times=0;
             BYTE pixel_hash = hash_pixel(pixel);
             // place this into the pixel index list
             index_list[pixel_hash]=pixel;
-            printf("full\n");
         }
         else
         {
@@ -266,7 +258,6 @@ int index_times=0;
                 // the number of times the run length is
                 for (int i = 0 ; i < ( data + 1 ) ; i++){
                     fwrite(&previous_pixel, sizeof(PIXEL), 1, outputFile);
-                    printf("run\n");
                 }
                 // previous pixel stays the same
 
@@ -279,7 +270,6 @@ int index_times=0;
                 fwrite(&pixel, sizeof(PIXEL), 1, outputFile);
                 // update the previous pixel
                 previous_pixel=pixel;
-                printf("index\n");
             }
             else if ( flag == small_difference_bit_flag){
 
@@ -301,7 +291,6 @@ int index_times=0;
                 fwrite(&pixel, sizeof(PIXEL), 1, outputFile);
                 // set this is the previous pixel
                 previous_pixel = pixel;
-                printf("small\n");
             }
             
             else if ( flag == bigger_difference_bit_flag){
@@ -334,7 +323,6 @@ int index_times=0;
                 fwrite(&pixel, sizeof(PIXEL), 1, outputFile);
                 // update previous pixel
                 previous_pixel = pixel;
-                printf("big\n");
             }
             else{
                 printf("Error while decoding byte flag isn't recognized...");
@@ -342,6 +330,10 @@ int index_times=0;
             }
         }
     }
+
+
+    printf("done decoding...\n");
+    printf("output written to %s\n",outputFileName);
     fclose(inputFile);
     fclose(outputFile);
     return 0;

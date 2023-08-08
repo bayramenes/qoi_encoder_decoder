@@ -265,7 +265,6 @@ int encode(char inputFileName[], char outputFileName[])
             if ( is_same_pixel(previous_pixel,current_pixel)==1 ){
                 if (run < 62){
                     run++;
-                    printf("run\n");
                     previous_pixel = current_pixel;
                     continue;
                 }
@@ -288,7 +287,6 @@ int encode(char inputFileName[], char outputFileName[])
                     // reset the run value
                     run = 1;
                     previous_pixel = current_pixel;
-                    printf("run\n");
                     continue;
                 }
 
@@ -329,7 +327,6 @@ int encode(char inputFileName[], char outputFileName[])
                         difference_byte = ( small_difference_bit_flag ) ^ ( ( diff_red + 2 ) << 4 ) ^ ( ( diff_green + 2 ) << 2 ) ^ ( ( diff_blue +2 ) );
                         fwrite(&difference_byte,sizeof(BYTE),1,outputFile);
                         previous_pixel = current_pixel;
-                        printf("small\n");
                         continue;
                     }
                 if (
@@ -344,7 +341,6 @@ int encode(char inputFileName[], char outputFileName[])
                     BYTE index_byte = index_bit_flag ^ pixel_hash;
                     fwrite(&index_byte,sizeof(BYTE),1,outputFile);
                     previous_pixel = current_pixel;
-                    printf("index\n");
                     continue;
                 }
 
@@ -364,7 +360,6 @@ int encode(char inputFileName[], char outputFileName[])
                     fwrite(&flag_and_green_difference_byte,sizeof(BYTE),1,outputFile);
                     fwrite(&red_and_blue_difference_to_green,sizeof(BYTE),1,outputFile);
                     previous_pixel= current_pixel;
-                    printf("big\n");
                     continue;
                 }
                 // first write the RGB flag which in this case is the extra flag
@@ -374,7 +369,6 @@ int encode(char inputFileName[], char outputFileName[])
                 // then add this pixel to the index list 
                 index_list[pixel_hash]=current_pixel;
                 previous_pixel = current_pixel;
-                printf("full\n");
                 continue;
             }
         }
