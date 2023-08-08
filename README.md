@@ -1,5 +1,6 @@
-# QOI (Quite Ok Image) Format !
 
+# QOI (Quite Ok Image) Format !
+![banner](banner.jpeg)
 this is and image format that was created by Dominic Szablewski
 in Novermber of 2021...
 
@@ -77,4 +78,33 @@ gcc encode.c -o encode
 ```
 clang encode.c -o encode
 ```
+---
+#### Decoder
+you can use any compiler you want
+
+#### GCC
+```
+gcc decode.c -o decode
+```
+
+#### CLANG 
+```
+clang decode.c -o decode
+```
+
+ ---
+
+## notes:
+1. i have impelmented this project with little endian in mind (though it is easy to use it for big endian with some changes)
+
+2. while decoding the image there are some header values for the bmp file that will be set to 0 because i am lazy to implement them (because appearently i need to find the screen DPI and so on)
+
+3. any suggestions or ideas are welcomd and i will be more than happy to implement or merge them...
+
+4. for now alpha and trasparent image isn't but i am thinking of supporting them in the future...
+
+
+
+
+
 
